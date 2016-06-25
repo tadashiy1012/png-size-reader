@@ -118,10 +118,13 @@ module.exports = (function() {
     return new Promise((resolve, reject) => {
       readBuf(tgtImagePath).then((resp) => {
         if (check(resp)) {
-          resolve(analysis(resp));
+          const obj = analysis(resp);
+          resolve([obj.width, obj.height]);
         } else {
           reject(new Error('Unsupported file type'));
         }
+      }).catch((err) => {
+        reject(err);
       });
     });
   };
