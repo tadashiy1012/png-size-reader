@@ -1,0 +1,30 @@
+{
+  "name": "png-size-reader",
+  "version": "1.0.0",
+  "description": "Gets the size of the png image",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require intelli-espower-loader"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tadashiy1012/png-size-reader.git"
+  },
+  "keywords": [
+    "png"
+  ],
+  "author": "Tadashi Yamazaki <tadashi.y1012@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tadashiy1012/png-size-reader/issues"
+  },
+  "homepage": "https://github.com/tadashiy1012/png-size-reader#readme",
+  "dependencies": {
+    "intelli-espower-loader": "^1.0.1",
+    "mocha": "^2.5.3",
+    "power-assert": "^1.4.1"
+  },
+  "directories": {
+    "test": "test/"
+  }
+}
