@@ -8,40 +8,22 @@ module.exports = (function() {
   const CRC_SIZE = 4;
 
   const HEX_IHDR = '49484452';
-  const HEX_IDAT = '49444154';
-  const HEX_IEND = '49454e44';
   const IHDR = 1;
-  const IDAT = 2;
-  const IEND = 3;
   const CHANK_TYPE_MAP = {
-    [HEX_IHDR]: IHDR,
-    [HEX_IDAT]: IDAT,
-    [HEX_IEND]: IEND
+    [HEX_IHDR]: IHDR
   };
-
-  const IHDR_DATA_SIZE = 13;
   const IHDR_IW_SIZE = 4;
   const IHDR_IH_SIZE = 4;
-  const IHDR_BD_SIZE = 1;
-  const IHDR_CT_SIZE = 1;
-  const IHDR_CM_SIZE = 1;
-  const IHDR_FM_SIZE = 1;
-  const IHDR_IM_SIZE = 1;
 
   function readBuf(tgtImagePath) {
     return new Promise((resolve, reject) => {
       fs.readFile(tgtImagePath, (err, data) => {
         if (err) { reject(err); }
-        else { resolve(new Uint8Array(data)); }
+        else { resolve(data); }
       });
     })
   }
-  function check(bary) {
-    let idx = 0;
-    const str = readAsHexString(bary, idx, SIGNATURE_SIZE);
-    return str === PNG_SIGNATURE;
-  }
-  function readAsHexString(bary, initIdx, length) {
+  function readHexStr(bary, initIdx, length) {
     let line = '';
     for (let i = initIdx; i < (initIdx + length); i++) {
       const str = bary[i].toString(16);
@@ -54,72 +36,41 @@ module.exports = (function() {
     return line;
   }
   function readAsInt(bary, initIdx, length) {
-    const hex = readAsHexString(bary, initIdx, length);
+    const hex = readHexStr(bary, initIdx, length);
     const num = parseInt(hex, 16);
     return num;
   }
-  function getChankDataPosition(idx) {
-    return idx + LENGTH_SIZE + CHANK_TYPE_SIZE;
-  }
-  function readChankType(bary, idx) {
-    const str = readAsHexString(bary, idx, CHANK_TYPE_SIZE);
-    const type = CHANK_TYPE_MAP[str] || -1;
-    return type;
-  }
-  function readChankDataLength(bary, idx) {
-    return readAsInt(bary, idx, LENGTH_SIZE);
-  }
-  function HeaderInfo(bary) {
-    let idx = 0;
-    this.width = readAsInt(bary, idx, IHDR_IW_SIZE);
-    idx += IHDR_IW_SIZE;
-    this.height = readAsInt(bary, idx, IHDR_IH_SIZE);
-    idx += IHDR_IH_SIZE;
-    this.bitDepth = readAsInt(bary, idx, IHDR_BD_SIZE);
-    idx += IHDR_BD_SIZE;
-    this.colorType = readAsInt(bary, idx, IHDR_CT_SIZE);
-    idx += IHDR_CT_SIZE;
-    this.compressMethod = readAsInt(bary, idx, IHDR_CM_SIZE);
-    idx += IHDR_CM_SIZE;
-    this.filterMethod = readAsInt(bary, idx, IHDR_FM_SIZE);
-    idx += IHDR_FM_SIZE;
-    this.interlaceMethod = readAsInt(bary, idx, IHDR_IM_SIZE);
-  }
-  function readIHDR(bary, idx) {
-    const pos = getChankDataPosition(idx);
+  function getSize(bary, idx) {
+    const pos = idx + LENGTH_SIZE + CHANK_TYPE_SIZE;
     const data = bary.subarray(pos);
-    return new HeaderInfo(data);
+    const width = readAsInt(data, 0, IHDR_IW_SIZE);
+    const height = readAsInt(data, 0 + IHDR_IW_SIZE, IHDR_IH_SIZE);
+    return [width, height];
   }
   function analysis(bary) {
     let idx = 0 + SIGNATURE_SIZE;
-    let length = -1;
-    let type = -1;
-    let imageInfo = null;
-    let loop = true;
-    while (idx >= 0 && loop) {
-      length = readChankDataLength(bary, idx);
-      type = readChankType(bary, idx + LENGTH_SIZE);
-      switch (type) {
-        case IHDR:
-          imageInfo = readIHDR(bary, idx);
-          break;
-        default:
-          loop = false;
-          break;
+    let size = null;
+    while (idx >= 0) {
+      const length = readAsInt(bary, idx, LENGTH_SIZE);
+      const str = readHexStr(bary, idx + LENGTH_SIZE, CHANK_TYPE_SIZE);
+      const type = CHANK_TYPE_MAP[str] || -1;
+      if (type === IHDR) {
+        size = getSize(bary, idx);
+        break;
       }
-      if (idx >= 0) {
-        const chankSize = LENGTH_SIZE + CHANK_TYPE_SIZE + length + CRC_SIZE;
-        idx += chankSize;
-      }
+      idx += LENGTH_SIZE + CHANK_TYPE_SIZE + length + CRC_SIZE;
     }
-    return imageInfo;
+    return size;
+  }
+  function check(bary) {
+    const str = readHexStr(bary, 0, SIGNATURE_SIZE);
+    return str === PNG_SIGNATURE;
   }
   return function pngSizeReader(tgtImagePath) {
     return new Promise((resolve, reject) => {
       readBuf(tgtImagePath).then((resp) => {
         if (check(resp)) {
-          const obj = analysis(resp);
-          resolve([obj.width, obj.height]);
+          resolve(analysis(resp));
         } else {
           reject(new Error('Unsupported file type'));
         }
