@@ -23,6 +23,9 @@ module.exports = (function() {
       });
     })
   }
+  function readBufSync(tgtImagePath) {
+    return fs.readFileSync(tgtImagePath);
+  }
   function readHexStr(bary, initIdx, length) {
     let line = '';
     for (let i = initIdx; i < (initIdx + length); i++) {
@@ -66,7 +69,7 @@ module.exports = (function() {
     const str = readHexStr(bary, 0, SIGNATURE_SIZE);
     return str === PNG_SIGNATURE;
   }
-  return function pngSizeReader(tgtImagePath) {
+  const returnFn = function pngSizeReader(tgtImagePath) {
     return new Promise((resolve, reject) => {
       readBuf(tgtImagePath).then((resp) => {
         if (check(resp)) {
@@ -79,4 +82,9 @@ module.exports = (function() {
       });
     });
   };
+  returnFn.sync = function pngSizeReaderSync(tgtImagePath) {
+    const buffer = readBufSync(tgtImagePath);
+    return analysis(buffer);
+  };
+  return returnFn;
 })();
