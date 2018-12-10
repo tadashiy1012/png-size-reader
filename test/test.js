@@ -18,4 +18,19 @@ describe('png-size-reader test', () => {
       done();
     });
   });
+  it('test1-sync', (done) => {
+    const size = reader.sync(testPngFile);
+    assert(size[0] === 800);
+    assert(size[1] === 600);
+    done();
+  });
+  it('test2-sync', (done) => {
+    try{
+      const size = reader.sync(testJpgFile);
+      assert();
+    }catch (e) {
+      assert(e !== undefined);
+      done();
+    }
+  });
 });
